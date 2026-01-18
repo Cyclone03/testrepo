@@ -1,0 +1,725 @@
+{
+  "name": "Test Azuro",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1728,
+        288
+      ],
+      "id": "46e6b829-a947-4e48-b8e9-f9f172faf447",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1z4PgmajRAcb-vIS-NVGrkqy2XIW5bsYS9TBE6PnpY8o",
+          "mode": "list",
+          "cachedResultName": "Copie de Dataset - test task",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1z4PgmajRAcb-vIS-NVGrkqy2XIW5bsYS9TBE6PnpY8o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1z4PgmajRAcb-vIS-NVGrkqy2XIW5bsYS9TBE6PnpY8o/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1504,
+        288
+      ],
+      "id": "45310fa4-7a3f-42b6-baf1-fd75860708f2",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sLUTAt8mEsOBMxEH",
+          "name": "Google Sheets Mack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.message }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "HIGH_PRIORITY",
+              "description": "Emails contenant :  plainte forte, colère, frustration intense  menace de plainte / opposition bancaire  problème de livraison urgente  délai serré (aujourd’hui / ce soir)  multiples relances ignorées  impact important immédiat → Toute émotion extrême = HIGH_PRIORITY"
+            },
+            {
+              "category": "CUSTOMER_SUPPORT",
+              "description": "Questions normales non urgentes :  \"Je voudrais savoir…\"  \"Pouvez-vous m’aider avec…\"  demandes d'information  petits problèmes techniques  clarifications → Pas de colère, pas d’urgence"
+            },
+            {
+              "category": "FINANCE_BILLING",
+              "description": "erreur de montant  remboursement  facture manquante  transaction douteuse  problème financier → Uniquement cas financiers"
+            },
+            {
+              "category": "OTHER",
+              "description": "Remerciements  Feedback  Messages flous / hors sujet  Demandes non liées à un problème réel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        -832,
+        128
+      ],
+      "id": "aa1450d9-2af9-47fd-b860-79cd42d96dbd",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -800,
+        -304
+      ],
+      "id": "0f782bd5-a911-4336-b9a4-f4af2c8b173c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "8iKRnvQDzEX3Z4xX",
+          "name": "Chattyyyyy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1717801483",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegramTool",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        464
+      ],
+      "id": "324995ec-1e34-429c-b716-43a786d85d8d",
+      "name": "Send a text message in Telegram",
+      "webhookId": "0491db9c-85a5-4e87-86e3-4b598cdaf42e",
+      "credentials": {
+        "telegramApi": {
+          "id": "Ycra2i9TgYGNC50Q",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=Tu es l’agent CUSTOMER_SUPPORT. Tu gères les demandes non urgentes :\n- questions générales,\n- demandes d’information,\n- retours simples,\n- problèmes modérés,\n- clarifications non critiques.\n\nTu reçois :\nid : {{ $json.id }}\nname : {{ $json.nom }}\nemail : {{ $json.email }}\nmessage : {{ $json.message }}\ncategory : \"CUSTOMER_SUPPORT\"\npriority\nsummary\n\n=== OUTILS ===\nGoogle Sheets → obligatoire\nTelegram → uniquement si l’impact émotionnel ou opérationnel est important.\n\n⚠️ RÈGLE OBLIGATOIRE\n1. Tu ne peux produire AUCUNE sortie textuelle hors JSON.\n2. Tu dois obligatoirement enregistrer toutes les données dans Google Sheets.\n3. notify_telegram = true uniquement si :\n   - forte frustration,\n   - risque de perte client (« j’annule », « je pars »),\n   - urgence déclarée par le client,\n   - menace implicite.\n4. Dans 90% des cas → notify_telegram = false.\n\n=== MISSIONS ===\nAnalyser la demande.\nProduire une réponse claire et utile.\nRédiger une note interne courte.\nClassifier la criticité.\nProduire un JSON utilisable par Google Sheets & Telegram uniquement.\n\n=== FORMAT À RETOURNER ===\n{\n  \"id\": \"{{ $json.id }}\",\n  \"name\": \"{{ $json.nom }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"category\": \"CUSTOMER_SUPPORT\",\n  \"priority\": \"<urgent ou normal>\",\n  \"needs_reply\": true,\n  \"email_subject\": \"<sujet>\",\n  \"email_body\": \"<réponse>\",\n  \"internal_note\": \"<note interne>\",\n  \"telegram_alert_message\": \"Support : Client {{ $json.nom }} ({{ $json.email }}) : <résumé>. Vérification recommandée.\",\n  \"notify_telegram\": <true or false>,\n  \"status\": \"ready\",\n  \"date_processed\": \"{{ $now }}\"\n}\n\nAucun texte hors JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -208,
+        64
+      ],
+      "id": "78f0d91a-d658-4417-a175-9205f17485c5",
+      "name": "Agent CUSTOMER_SUPPORT"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=Tu es l’agent HIGH_PRIORITY. Ton rôle : traiter uniquement les situations réellement critiques :\n- colis marqué livré mais non reçu,\n- opposition bancaire,\n- menaces de plainte,\n- délais très serrés,\n- erreur grave impactant le client,\n- émotion forte (colère, frustration, ultimatum).\n\nTu reçois :\nid : {{ $json.id }}\nname : {{ $json.nom }}\nemail : {{ $json.email }}\nmessage : {{ $json.message }}\ncategory : \"HIGH_PRIORITY\"\npriority\nsummary\n\n=== OUTILS À TA DISPOSITION ===\nGoogle Sheets → obligatoire pour TOUTE donnée traitée.\nTelegram → uniquement si la situation demande une intervention humaine immédiate.\n\n⚠️ RÈGLE OBLIGATOIRE (NON NÉGOCIABLE)\n1. Tu es strictement interdit de produire un texte hors du JSON final.\n2. Tu n’as AUCUN droit d’écrire une réponse “humaine” directement.\n3. Toute donnée traitée doit être destinée à Google Sheets.\n4. Toute alerte urgente doit obligatoirement passer par Telegram.\n5. notify_telegram = true UNIQUEMENT si l’urgence est réelle, immédiate, sérieuse.\n\n=== MISSIONS ===\n- Lire et analyser l’intensité émotionnelle du message.\n- Rédiger une réponse professionnelle, empathique et orientée solution.\n- Préparer une note interne exploitable.\n- Décider strictement si Telegram doit être activé.\n- Produire un JSON compatible avec Google Sheets & Telegram uniquement.\n\n=== FORMAT STRICT À RETOURNER ===\n{\n  \"id\": \"{{ $json.id }}\",\n  \"name\": \"{{ $json.nom }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"category\": \"HIGH_PRIORITY\",\n  \"priority\": \"<urgent ou normal>\",\n  \"needs_reply\": true,\n  \"email_subject\": \"<sujet email clair et urgent>\",\n  \"email_body\": \"<réponse professionnelle>\",\n  \"internal_note\": \"<analyse interne>\",\n  \"telegram_alert_message\": \"Urgent : Client {{ $json.nom }} ({{ $json.email }}) : <résumé court>. Action immédiate requise.\",\n  \"notify_telegram\": <true or false>,\n  \"status\": \"ready\",\n  \"date_processed\": \"{{ $now }}\"\n}\n\nAucun texte hors du JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -432,
+        -336
+      ],
+      "id": "39e31fba-e4e3-4b4a-9844-4970c3783ba2",
+      "name": "Agent HIGH_PRIORITY"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=Tu es l’agent BILLING. Tu gères :\n- paiements,\n- remboursements,\n- erreurs de facturation,\n- problèmes de transaction,\n- risques bancaires.\n\nTu reçois :\nid : {{ $json.id }}\nname : {{ $json.nom }}\nemail : {{ $json.email }}\nmessage : {{ $json.message }}\ncategory : \"FINANCE_BILLING\"\npriority\nsummary\n\n=== OUTILS ===\nGoogle Sheets → obligatoire\nTelegram → uniquement si :\n- opposition bancaire,\n- fraude suspectée,\n- menace légale,\n- risque de chargeback.\n\n⚠️ RÈGLE OBLIGATOIRE\n1. Aucune sortie textuelle hors JSON.\n2. Toute donnée doit être envoyée à Google Sheets.\n3. notify_telegram = true uniquement si un risque financier réel est détecté.\n4. Sinon → notify_telegram = false.\n\n=== MISSIONS ===\nAnalyser le problème financier.\nProduire une réponse professionnelle.\nCréer une note interne financière.\nClassifier le niveau de risque.\nGénérer un JSON pour Google Sheets & Telegram uniquement.\n\n=== FORMAT ===\n{\n  \"id\": \"{{ $json.id }}\",\n  \"name\": \"{{ $json.nom }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"category\": \"FINANCE_BILLING\",\n  \"priority\": \"<urgent ou normal>\",\n  \"needs_reply\": true,\n  \"email_subject\": \"<sujet facturation>\",\n  \"email_body\": \"<réponse professionnelle>\",\n  \"internal_note\": \"<note interne finance>\",\n  \"telegram_alert_message\": \"Alerte Facturation : Client {{ $json.nom }} ({{ $json.email }}) : <résumé>. Risque d’opposition bancaire.\",\n  \"notify_telegram\": <true or false>,\n  \"status\": \"ready\",\n  \"date_processed\": \"{{ $now }}\"\n}\n\nAucun texte hors JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        256
+      ],
+      "id": "5daeea36-acc1-4bc6-9af2-6fc22202466b",
+      "name": "Agent BILLING"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=Tu es l’agent OTHER. Tu gères les messages non urgents :\n- remerciements,\n- feedback,\n- suggestions,\n- demandes floues,\n- messages non liés à un problème concret.\n\nTu reçois :\nid : {{ $json.id }}\nname : {{ $json.nom }}\nemail : {{ $json.email }}\nmessage : {{ $json.message }}\ncategory : \"OTHER\"\npriority\nsummary\n\n=== OUTILS ===\nGoogle Sheets → obligatoire\nTelegram → uniquement si un élément inhabituel, rare ou inquiétant est détecté.\n\n⚠️ RÈGLE OBLIGATOIRE\n1. Tu ne peux produire AUCUNE sortie hors JSON.\n2. Toute donnée doit être enregistrée dans Google Sheets.\n3. notify_telegram = false dans 99% des cas.\n4. Utilise Telegram seulement si le message contient une anomalie rare.\n\n=== MISSIONS ===\nComprendre et répondre poliment.\nPréparer une note interne concise.\nProduire un JSON utilisable uniquement par Google Sheets & Telegram.\n\n=== FORMAT ===\n{\n  \"id\": \"{{ $json.id }}\",\n  \"name\": \"{{ $json.nom }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"category\": \"OTHER\",\n  \"priority\": \"<normal>\",\n  \"needs_reply\": true,\n  \"email_subject\": \"<sujet>\",\n  \"email_body\": \"<réponse polie>\",\n  \"internal_note\": \"<note interne>\",\n  \"telegram_alert_message\": \"\",\n  \"notify_telegram\": false,\n  \"status\": \"ready\",\n  \"date_processed\": \"{{ $now }}\"\n}\n\nAucun texte hors JSON.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        512
+      ],
+      "id": "787b7542-df4c-4d2d-8c70-0a512113ab29",
+      "name": "Agent OTHER"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1TZDQDLEWMuUr-tca-yk5gtJm-upRTArR-T77MChPBC0",
+          "mode": "list",
+          "cachedResultName": "Processed Messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TZDQDLEWMuUr-tca-yk5gtJm-upRTArR-T77MChPBC0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TZDQDLEWMuUr-tca-yk5gtJm-upRTArR-T77MChPBC0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id', ``, 'string') }}",
+            "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('message', ``, 'string') }}",
+            "category": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('category', ``, 'string') }}",
+            "priority": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('priority', ``, 'string') }}",
+            "agent_reply": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('agent_reply', ``, 'string') }}",
+            "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('summary', ``, 'string') }}",
+            "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('name', ``, 'string') }}",
+            "email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('email', ``, 'string') }}",
+            "nom": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('nom', ``, 'string') }}",
+            "toolCallId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('toolCallId', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nom",
+              "displayName": "nom",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "agent_reply",
+              "displayName": "agent_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "toolCallId",
+              "displayName": "toolCallId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        656
+      ],
+      "id": "4f95137d-2b81-4601-ad5f-2fc9563e7f8a",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sLUTAt8mEsOBMxEH",
+          "name": "Google Sheets Mack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1280,
+        288
+      ],
+      "id": "9c9f6bdd-f77d-42ce-ab52-918342cdcfe6",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        304
+      ],
+      "id": "689fbb4d-094a-4125-92bd-19512356f190",
+      "name": "Wait",
+      "webhookId": "45e3673f-fbc7-4ef3-a064-8c4cf4a74920"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        400
+      ],
+      "id": "60587909-030d-44f0-a6b0-77724c3a7bea"
+    },
+    {
+      "parameters": {
+        "content": "1. Vue d’ensemble du fonctionnement\n\nCe workflow reproduit le fonctionnement d’un service client réel.\nIl s’appuie sur des données fictives, mais le processus est identique à celui d’un système connecté à Gmail/Outlook.\n\nÉtapes principales :\n\nLecture d’une liste de messages dans Google Sheets\n\nTraitement un par un de chaque message\n\nAnalyse automatique du contenu\n\nClassification : HIGH_PRIORITY, CUSTOMER_SUPPORT, FINANCE_BILLING, OTHER\n\nEnvoi du message à l’agent IA correspondant\n\nGénération d’une réponse structurée + résumé\n\nEnregistrement complet dans Google Sheets\n\nNotification Telegram uniquement si nécessaire (urgence)\n\nLe workflow agit comme un assistant intelligent qui prépare et structure le travail avant intervention humaine.",
+        "height": 528,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2256,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "611fa33a-2369-4cda-b020-48dadddf9049",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "2. Description détaillée des nœuds\n2.1. Trigger – When clicking “Execute workflow”\n\nLancement manuel du workflow.\nDans une mise en production, ce nœud sera remplacé par un trigger Gmail/Outlook.",
+        "height": 272,
+        "width": 528,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2256,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "d8a73941-3d90-4970-989b-3cfd394c95dd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "2. Description détaillée des nœuds\n2.1. Trigger – When clicking “Execute workflow”\n\nLancement manuel du workflow.\nDans une mise en production, ce nœud sera remplacé par un trigger Gmail/Outlook.",
+        "height": 192,
+        "width": 288,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1568,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "762cf23b-e1e7-4218-86bd-90b24d274563",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "2.2. Get rows in sheet (Google Sheets – Lecture)\n\nRécupère pour chaque ligne :\n\nemail du client\n\nnom\n\nmessage\n\nidentifiant\n\nCette table sert de source simulée pour les messages à analyser.",
+        "height": 288,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1568,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "9526f721-2d5f-47b2-b84e-a37a7a972ddb",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "2.3. Loop Over Items\n\nChaque ligne = un message.\nCe nœud garantit un traitement individuel, propre et isolé pour chaque message.\nSans la boucle → toutes les données seraient traitées ensemble, ce qui serait inutilisable.\n\n2.4. Wait\n\nPetit délai technique pour :\n\néviter trop de requêtes simultanées,\n\nstabiliser les appels IA,\n\nlimiter les collisions API.",
+        "height": 336,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1968,
+        576
+      ],
+      "typeVersion": 1,
+      "id": "c293850d-655a-4799-ad91-269f4ee03510",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "2.6. Agents spécialisés (4 types)\n2.6.1. Agent HIGH_PRIORITY\n\nGère tout ce qui est critique :\n\ncolis livré mais non reçu\n\nmenaces / litiges\n\nsituations sensibles émotionnellement\n\nIl produit :\n\nune réponse professionnelle,\n\nune note interne,\n\nune décision concernant l’alerte Telegram.\n\n2.6.2. Agent CUSTOMER_SUPPORT\n\nPrend en charge :\n\néchanges\n\nquestions générales\n\nretours non urgents\n\nProduit :\n\nréponse claire\n\nnote interne\n\ndécision Telegram (rare)\n\n2.6.3. Agent BILLING\n\nGère :\n\npaiements\n\nremboursements\n\nerreurs de facturation\n\nEn cas de suspicion grave → peut déclencher un Telegram.\n\n2.6.4. Agent OTHER\n\nTraite les messages simples :\n\nremerciements\n\nfeedbacks\n\ndiscussions sans demande urgente\n\nAucune alerte Telegram sauf exception.\n\n2.7. Append row in Google Sheets\n\nEnregistre :\n\ncatégorie\n\npriorité\n\nréponse agent\n\nrésumé\n\nnotes internes\n\ndécision Telegram\n\nCela constitue l’historique centralisé du traitement.",
+        "height": 1520,
+        "width": 704
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        896,
+        -704
+      ],
+      "typeVersion": 1,
+      "id": "b175d0fa-d916-44c3-8c09-01af54c3bafc",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "2.5. Text Classifier\n\nC’est le \"cerveau\" du workflow.\n\nIl :\n\nlit le message,\n\ncomprend l’intention,\n\nclasse dans : HIGH_PRIORITY, CUSTOMER_SUPPORT, FINANCE_BILLING, OTHER,\n\ngénère :\n\nun résumé,\n\nun niveau de priorité,\n\ndes métadonnées permettant de router vers le bon agent.\n\nCette étape remplace le tri manuel habituellement effectué par un support client.",
+        "height": 448,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -496
+      ],
+      "typeVersion": 1,
+      "id": "9569bc5a-9f33-42dd-927b-5c2b2fe82e09",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "2.8. Notification Telegram\n\nUniquement si :\nnotify_telegram = true\n\nActivé en cas :\n\nd’urgence\n\nde litige critique\n\nde risque bancaire\n\nObjectif : prévenir immédiatement l’équipe humaine.\n\n3. Résumé du fonctionnement global\n\nLecture des messages\n\nBoucle → traitement individuel\n\nClassification automatique\n\nPassage au bon agent\n\nGénération de réponses + résumé\n\nEnregistrement Google Sheets\n\nAlerte Telegram si nécessaire\n\nLe système est entièrement autonome et scalable.\n\n4. Points importants\n\nLes données sont fictives, mais le procédé est identique à une intégration réelle.\n\nLe workflow est prêt à être connecté à Gmail/Outlook.\n\nLes agents IA garantissent une structure JSON propre et stable.\n\nLe système réduit les erreurs humaines et accélère le traitement client.\n\n5. Conclusion\n\nCe workflow constitue une architecture complète de support client automatisé :\n\ncompréhension intelligente des messages,\n\ntri automatique,\n\nréponses cohérentes,\n\nalertes uniquement lorsqu’un humain est indispensable,\n\nhistorique détaillé pour analyse.\n\n📌 Note :\n\nCette documentation est volontairement intégrée dans le workflow pour faciliter la maintenance, l’adaptation ou l’extension future.",
+        "height": 1184,
+        "width": 1248,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1392,
+        704
+      ],
+      "typeVersion": 1,
+      "id": "68324fb1-7501-4977-9e1c-340e55e176ae",
+      "name": "Sticky Note7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Agent HIGH_PRIORITY",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Agent CUSTOMER_SUPPORT",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Agent BILLING",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Agent OTHER",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Agent HIGH_PRIORITY",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent CUSTOMER_SUPPORT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent BILLING",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent OTHER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message in Telegram": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent HIGH_PRIORITY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Agent CUSTOMER_SUPPORT",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Agent BILLING",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent HIGH_PRIORITY": {
+      "main": [
+        []
+      ]
+    },
+    "Agent OTHER": {
+      "main": [
+        []
+      ]
+    },
+    "Agent CUSTOMER_SUPPORT": {
+      "main": [
+        []
+      ]
+    },
+    "Agent BILLING": {
+      "main": [
+        []
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent HIGH_PRIORITY",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Agent CUSTOMER_SUPPORT",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Agent BILLING",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Agent OTHER",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "79cd5700-8d1e-4656-87cc-5faa08174531",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "755db9fcf21529b5557282c09b882df8c52b8b33a9c19c141c99ead66778da90"
+  },
+  "id": "ItGzQCsjZqWcFH5k",
+  "tags": []
+}
